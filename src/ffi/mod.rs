@@ -51,7 +51,7 @@ pub use self::rust::*;
 
 #[cfg(not(feature = "any_impl"))]
 compile_error!(
-    "No compression backend selected; enable one of `zlib`, `zlib-ng`, `zlib-rs`, or the default `rust_backend` feature."
+    "No compression backend selected; enable `zlib`, `zlib-ng`, `zlib-rs`, or use the default `rust_backend` feature."
 );
 
 impl std::fmt::Debug for ErrorMessage {

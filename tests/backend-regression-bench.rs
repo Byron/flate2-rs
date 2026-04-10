@@ -70,10 +70,10 @@ fn parse_rows(csv: &str) -> BTreeMap<String, BenchmarkRow> {
         let mut fields = line.split(',');
         let backend = fields.next().unwrap();
         let api = fields.next().unwrap().to_owned();
-        let _iterations = fields.next().unwrap();
-        let _bytes = fields.next().unwrap();
+        let _ = fields.next().unwrap();
+        let _ = fields.next().unwrap();
         let nanos = fields.next().unwrap().parse::<u128>().unwrap();
-        let _throughput = fields.next().unwrap();
+        let _ = fields.next().unwrap();
         assert!(fields.next().is_none(), "unexpected CSV row: {}", line);
         assert!(
             backend == "zlib-ng" || backend == "zlib-rs",
