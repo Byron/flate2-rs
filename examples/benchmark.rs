@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 use flate2::{bufread, read, Decompress, FlushDecompress, Status};
 
 const DATA_BYTES: usize = 8 * 1024 * 1024;
+const EXTRA_CAPACITY_DIVISOR: usize = 8;
 const ITERATIONS: usize = 8;
 
 fn main() {
@@ -95,7 +96,8 @@ fn format_throughput(bytes: usize, elapsed: Duration) -> String {
 }
 
 fn sample_data() -> Vec<u8> {
-    let mut output = String::with_capacity(DATA_BYTES + (DATA_BYTES / 8));
+    let mut output =
+        String::with_capacity(DATA_BYTES + (DATA_BYTES / EXTRA_CAPACITY_DIVISOR));
     let mut i = 0usize;
     while output.len() < DATA_BYTES {
         let _ = write!(
