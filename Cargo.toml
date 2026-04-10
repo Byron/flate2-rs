@@ -48,3 +48,7 @@ miniz-sys = ["rust_backend"] # For backwards compatibility
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
+
+[[example]]
+name = "benchmark"
+required-features = ["miniz_oxide"]
