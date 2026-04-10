@@ -20,6 +20,7 @@ and raw deflate streams.
 libz-sys = { version = "1.1.8", optional = true, default-features = false }
 libz-ng-sys = { version = "1.1.8", optional = true }
 cloudflare-zlib-sys = { version = "0.3.0", optional = true }
+zlib-rs = { version = "0.6.3", optional = true, default-features = false, features = ["std", "rust-allocator"] }
 miniz_oxide = { version = "0.7.1", optional = true, default-features = false, features = ["with-alloc"] }
 crc32fast = "1.2.0"
 
@@ -32,13 +33,16 @@ quickcheck = { version = "1.0", default-features = false }
 
 [features]
 default = ["rust_backend"]
-any_zlib = [] # note: this is not a real user-facing feature
-zlib = ["any_zlib", "libz-sys"]
-zlib-default = ["any_zlib", "libz-sys/default"]
+any_impl = [] # note: this is not a real user-facing feature
+any_zlib = ["any_impl"] # note: this is not a real user-facing feature
+any_c_zlib = ["any_zlib"] # note: this is not a real user-facing feature
+zlib = ["any_c_zlib", "libz-sys"]
+zlib-default = ["any_c_zlib", "libz-sys/default"]
 zlib-ng-compat = ["zlib", "libz-sys/zlib-ng"]
-zlib-ng = ["any_zlib", "libz-ng-sys"]
-cloudflare_zlib = ["any_zlib", "cloudflare-zlib-sys"]
-rust_backend = ["miniz_oxide"]
+zlib-ng = ["any_c_zlib", "libz-ng-sys"]
+zlib-rs = ["any_zlib", "dep:zlib-rs"]
+cloudflare_zlib = ["any_c_zlib", "cloudflare-zlib-sys"]
+rust_backend = ["miniz_oxide", "any_impl"]
 miniz-sys = ["rust_backend"] # For backwards compatibility
 
 [package.metadata.docs.rs]
