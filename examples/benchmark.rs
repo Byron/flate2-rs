@@ -96,8 +96,7 @@ fn format_throughput(bytes: usize, elapsed: Duration) -> String {
 }
 
 fn sample_data() -> Vec<u8> {
-    let mut output =
-        String::with_capacity(DATA_BYTES + (DATA_BYTES / EXTRA_CAPACITY_DIVISOR));
+    let mut output = String::with_capacity(DATA_BYTES + (DATA_BYTES / EXTRA_CAPACITY_DIVISOR));
     let mut i = 0usize;
     while output.len() < DATA_BYTES {
         let _ = write!(
