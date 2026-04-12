@@ -93,6 +93,13 @@ See [the libz-sys
 README](https://github.com/rust-lang/libz-sys/blob/main/README.md) for details.
 To avoid that, use the `"zlib-ng"` feature instead.
 
+If you want a fully Rust zlib-compatible backend, you can use `zlib-rs`:
+
+```toml
+[dependencies]
+flate2 = { version = "1.0.17", features = ["zlib-rs"], default-features = false }
+```
+
 For compatibility with previous versions of `flate2`, the Cloudflare optimized
 version of zlib is available, via the `cloudflare_zlib` feature. It's not as
 fast as zlib-ng, but it's faster than stock zlib. It requires an x86-64 CPU with

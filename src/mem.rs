@@ -266,17 +266,29 @@ impl Compress {
     /// Returns the Adler-32 checksum of the dictionary.
     #[cfg(feature = "any_zlib")]
     pub fn set_dictionary(&mut self, dictionary: &[u8]) -> Result<u32, CompressError> {
-        let stream = &mut *self.inner.inner.stream_wrapper;
-        stream.msg = std::ptr::null_mut();
-        let rc = unsafe {
-            assert!(dictionary.len() < ffi::uInt::MAX as usize);
-            ffi::deflateSetDictionary(stream, dictionary.as_ptr(), dictionary.len() as ffi::uInt)
-        };
+        #[cfg(feature = "any_c_zlib")]
+        {
+            let stream = &mut *self.inner.inner.stream_wrapper;
+            stream.msg = std::ptr::null_mut();
+            let rc = unsafe {
+                assert!(dictionary.len() < ffi::uInt::MAX as usize);
+                ffi::deflateSetDictionary(
+                    stream,
+                    dictionary.as_ptr(),
+                    dictionary.len() as ffi::uInt,
+                )
+            };
 
-        match rc {
-            ffi::MZ_STREAM_ERROR => compress_failed(self.inner.inner.msg()),
-            ffi::MZ_OK => Ok(stream.adler as u32),
-            c => panic!("unknown return code: {}", c),
+            match rc {
+                ffi::MZ_STREAM_ERROR => compress_failed(self.inner.inner.msg()),
+                ffi::MZ_OK => Ok(stream.adler as u32),
+                c => panic!("unknown return code: {}", c),
+            }
+        }
+
+        #[cfg(all(not(feature = "any_c_zlib"), feature = "zlib-rs"))]
+        {
+            self.inner.set_dictionary(dictionary)
         }
     }
 
@@ -299,16 +311,25 @@ impl Compress {
     /// ensures that the function will succeed on the first call.
     #[cfg(feature = "any_zlib")]
     pub fn set_level(&mut self, level: Compression) -> Result<(), CompressError> {
-        use std::os::raw::c_int;
-        let stream = &mut *self.inner.inner.stream_wrapper;
-        stream.msg = std::ptr::null_mut();
+        #[cfg(all(not(feature = "any_c_zlib"), feature = "zlib-rs"))]
+        {
+            return self.inner.set_level(level);
+        }
 
-        let rc = unsafe { ffi::deflateParams(stream, level.0 as c_int, ffi::MZ_DEFAULT_STRATEGY) };
+        #[cfg(feature = "any_c_zlib")]
+        {
+            use std::os::raw::c_int;
+            let stream = &mut *self.inner.inner.stream_wrapper;
+            stream.msg = std::ptr::null_mut();
 
-        match rc {
-            ffi::MZ_OK => Ok(()),
-            ffi::MZ_BUF_ERROR => compress_failed(self.inner.inner.msg()),
-            c => panic!("unknown return code: {}", c),
+            let rc =
+                unsafe { ffi::deflateParams(stream, level.0 as c_int, ffi::MZ_DEFAULT_STRATEGY) };
+
+            match rc {
+                ffi::MZ_OK => Ok(()),
+                ffi::MZ_BUF_ERROR => compress_failed(self.inner.inner.msg()),
+                c => panic!("unknown return code: {}", c),
+            }
         }
     }
 
@@ -491,18 +512,30 @@ impl Decompress {
     /// Specifies the decompression dictionary to use.
     #[cfg(feature = "any_zlib")]
     pub fn set_dictionary(&mut self, dictionary: &[u8]) -> Result<u32, DecompressError> {
-        let stream = &mut *self.inner.inner.stream_wrapper;
-        stream.msg = std::ptr::null_mut();
-        let rc = unsafe {
-            assert!(dictionary.len() < ffi::uInt::MAX as usize);
-            ffi::inflateSetDictionary(stream, dictionary.as_ptr(), dictionary.len() as ffi::uInt)
-        };
+        #[cfg(feature = "any_c_zlib")]
+        {
+            let stream = &mut *self.inner.inner.stream_wrapper;
+            stream.msg = std::ptr::null_mut();
+            let rc = unsafe {
+                assert!(dictionary.len() < ffi::uInt::MAX as usize);
+                ffi::inflateSetDictionary(
+                    stream,
+                    dictionary.as_ptr(),
+                    dictionary.len() as ffi::uInt,
+                )
+            };
 
-        match rc {
-            ffi::MZ_STREAM_ERROR => decompress_failed(self.inner.inner.msg()),
-            ffi::MZ_DATA_ERROR => decompress_need_dict(stream.adler as u32),
-            ffi::MZ_OK => Ok(stream.adler as u32),
-            c => panic!("unknown return code: {}", c),
+            match rc {
+                ffi::MZ_STREAM_ERROR => decompress_failed(self.inner.inner.msg()),
+                ffi::MZ_DATA_ERROR => decompress_need_dict(stream.adler as u32),
+                ffi::MZ_OK => Ok(stream.adler as u32),
+                c => panic!("unknown return code: {}", c),
+            }
+        }
+
+        #[cfg(all(not(feature = "any_c_zlib"), feature = "zlib-rs"))]
+        {
+            self.inner.set_dictionary(dictionary)
         }
     }
 
