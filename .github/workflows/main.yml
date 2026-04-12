@@ -54,6 +54,24 @@ jobs:
       run: rustup update stable && rustup default stable && rustup component add rustfmt
     - run: cargo fmt -- --check
 
+  backend-regression-benchmark:
+    name: Backend regression benchmark
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Rust
+      run: rustup update stable --no-self-update && rustup default stable
+      shell: bash
+    - name: Run release benchmark regression test
+      run: cargo test --release --test backend-regression-bench -- --ignored --nocapture
+    - name: Upload benchmark CSV output
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend-regression-benchmark-csv
+        path: target/backend-bench/*.csv
+        if-no-files-found: error
+
   wasm:
     name: WebAssembly
     runs-on: ubuntu-latest
