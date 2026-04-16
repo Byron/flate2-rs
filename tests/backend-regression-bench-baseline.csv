@@ -1,0 +1,22 @@
+# Generated from commit b9afa93d70e19a213a3594190e31fb39d83aba0e (the first parent of 3cae7da / PR #502).
+backend,case,baseline_ns_per_byte,max_regression_factor
+rust_backend,compress_chunked_large_output_buf,0.485604758,1.75
+rust_backend,compress_uninit_chunked_large_output_buf,0.485604758,1.75
+rust_backend,decompress_chunked_large_output_buf,0.240012576,1.75
+rust_backend,decompress_uninit_chunked_large_output_buf,0.240012576,1.75
+zlib-rs,compress_chunked_large_output_buf,0.410701051,1.75
+zlib-rs,compress_uninit_chunked_large_output_buf,0.410701051,1.75
+zlib-rs,decompress_chunked_large_output_buf,0.149591486,1.75
+zlib-rs,decompress_uninit_chunked_large_output_buf,0.149591486,1.75
+zlib,compress_chunked_large_output_buf,1.989416146,1.75
+zlib,compress_uninit_chunked_large_output_buf,1.989416146,1.75
+zlib,decompress_chunked_large_output_buf,0.501298234,1.75
+zlib,decompress_uninit_chunked_large_output_buf,0.501298234,1.75
+zlib-ng,compress_chunked_large_output_buf,0.370286137,1.75
+zlib-ng,compress_uninit_chunked_large_output_buf,0.370286137,1.75
+zlib-ng,decompress_chunked_large_output_buf,0.145238151,1.75
+zlib-ng,decompress_uninit_chunked_large_output_buf,0.145238151,1.75
+zlib-ng-compat,compress_chunked_large_output_buf,0.400996745,1.75
+zlib-ng-compat,compress_uninit_chunked_large_output_buf,0.400996745,1.75
+zlib-ng-compat,decompress_chunked_large_output_buf,0.148124347,1.75
+zlib-ng-compat,decompress_uninit_chunked_large_output_buf,0.148124347,1.75
