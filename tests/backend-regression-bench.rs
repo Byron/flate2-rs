@@ -437,14 +437,21 @@ impl KnownGoodWorktree {
 
 impl Drop for KnownGoodWorktree {
     fn drop(&mut self) {
-        let _ = Command::new("git")
+        if let Err(err) = Command::new("git")
             .arg("-C")
             .arg(&self.repo_root)
             .arg("worktree")
             .arg("remove")
             .arg("--force")
             .arg(&self.path)
-            .output();
+            .output()
+        {
+            eprintln!(
+                "failed to remove temporary worktree {}: {}",
+                self.path.display(),
+                err
+            );
+        }
     }
 }
 
@@ -677,7 +684,13 @@ fn generate_baselines(backend: BackendConfig) -> Vec<BaselineRecord> {
             .collect::<Vec<_>>()
     };
 
-    let _ = fs::remove_dir_all(&temp_root);
+    fs::remove_dir_all(&temp_root).unwrap_or_else(|err| {
+        panic!(
+            "failed to remove temporary baseline directory {}: {}",
+            temp_root.display(),
+            err
+        )
+    });
     baselines
 }
 
