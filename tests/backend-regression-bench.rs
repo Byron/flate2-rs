@@ -88,9 +88,25 @@ fn benchmark_data() -> BenchmarkData {
     BenchmarkData { plain, zlib }
 }
 
+fn initialized_output_chunk() -> Box<[u8]> {
+    vec![0u8; CHUNK_OUT].into_boxed_slice()
+}
+
+fn uninit_output_chunk() -> Box<[MaybeUninit<u8>]> {
+    vec![MaybeUninit::<u8>::uninit(); CHUNK_OUT].into_boxed_slice()
+}
+
+fn initialized_prefix(output: &[MaybeUninit<u8>], bytes_written: usize) -> &[u8] {
+    unsafe {
+        // SAFETY: The benchmark only reads the prefix reported by total_out() for a
+        // completed compress/decompress call, which is the initialized portion.
+        std::slice::from_raw_parts(output.as_ptr() as *const u8, bytes_written)
+    }
+}
+
 fn run_decompress_chunked_large_output_buf(data: &BenchmarkData) {
     let mut decoder = Decompress::new(true);
-    let mut chunk = vec![0u8; CHUNK_OUT].into_boxed_slice();
+    let mut chunk = initialized_output_chunk();
     let mut result = Vec::with_capacity(data.plain.len());
 
     loop {
@@ -116,7 +132,7 @@ fn run_decompress_chunked_large_output_buf(data: &BenchmarkData) {
 
 fn run_decompress_uninit_chunked_large_output_buf(data: &BenchmarkData) {
     let mut decoder = Decompress::new(true);
-    let mut chunk = vec![MaybeUninit::<u8>::uninit(); CHUNK_OUT].into_boxed_slice();
+    let mut chunk = uninit_output_chunk();
     let mut result = Vec::with_capacity(data.plain.len());
 
     loop {
@@ -131,9 +147,7 @@ fn run_decompress_uninit_chunked_large_output_buf(data: &BenchmarkData) {
             )
             .unwrap();
         let bytes_written = (decoder.total_out() - prior_out) as usize;
-        result.extend_from_slice(unsafe {
-            std::slice::from_raw_parts(chunk.as_ptr() as *const u8, bytes_written)
-        });
+        result.extend_from_slice(initialized_prefix(&chunk, bytes_written));
         if status == Status::StreamEnd {
             break;
         }
@@ -144,7 +158,7 @@ fn run_decompress_uninit_chunked_large_output_buf(data: &BenchmarkData) {
 
 fn run_compress_chunked_large_output_buf(data: &BenchmarkData) {
     let mut encoder = Compress::new(Compression::fast(), true);
-    let mut chunk = vec![0u8; CHUNK_OUT].into_boxed_slice();
+    let mut chunk = initialized_output_chunk();
     let mut result = Vec::with_capacity(data.zlib.len() * 2);
 
     loop {
@@ -171,7 +185,7 @@ fn run_compress_chunked_large_output_buf(data: &BenchmarkData) {
 
 fn run_compress_uninit_chunked_large_output_buf(data: &BenchmarkData) {
     let mut encoder = Compress::new(Compression::fast(), true);
-    let mut chunk = vec![MaybeUninit::<u8>::uninit(); CHUNK_OUT].into_boxed_slice();
+    let mut chunk = uninit_output_chunk();
     let mut result = Vec::with_capacity(data.zlib.len() * 2);
 
     loop {
@@ -187,9 +201,7 @@ fn run_compress_uninit_chunked_large_output_buf(data: &BenchmarkData) {
             .compress_uninit(&data.plain[in_start..in_end], &mut chunk, flush)
             .unwrap();
         let bytes_written = (encoder.total_out() - prior_out) as usize;
-        result.extend_from_slice(unsafe {
-            std::slice::from_raw_parts(chunk.as_ptr() as *const u8, bytes_written)
-        });
+        result.extend_from_slice(initialized_prefix(&chunk, bytes_written));
         if status == Status::StreamEnd {
             break;
         }
@@ -237,9 +249,13 @@ fn benchmark_case(data: &BenchmarkData, case: Case) -> BenchmarkResult {
 }
 
 fn sample_iterations(warmup_elapsed: Duration) -> usize {
-    let warmup_nanos = warmup_elapsed.as_nanos().max(1);
+    let warmup_nanos = warmup_elapsed.as_nanos();
     let target_nanos = BENCH_TARGET_SAMPLE_TIME.as_nanos();
-    let iterations = (target_nanos / warmup_nanos) as usize;
+    let iterations = if warmup_nanos == 0 {
+        BENCH_MAX_ITERS_PER_SAMPLE
+    } else {
+        (target_nanos / warmup_nanos) as usize
+    };
     iterations.clamp(1, BENCH_MAX_ITERS_PER_SAMPLE)
 }
 
@@ -255,10 +271,28 @@ fn load_baselines() -> Vec<BaselineRecord> {
 
 fn parse_baseline_record(line: &str) -> BaselineRecord {
     let mut fields = line.split(',');
-    let backend = fields.next().unwrap().trim().to_owned();
-    let case = fields.next().unwrap().trim().to_owned();
-    let baseline_ns_per_byte = fields.next().unwrap().trim().parse().unwrap();
-    let max_regression_factor = fields.next().unwrap().trim().parse().unwrap();
+    let backend = fields
+        .next()
+        .expect("missing backend field in baseline CSV")
+        .trim()
+        .to_owned();
+    let case = fields
+        .next()
+        .expect("missing case field in baseline CSV")
+        .trim()
+        .to_owned();
+    let baseline_ns_per_byte = fields
+        .next()
+        .expect("missing baseline_ns_per_byte field in baseline CSV")
+        .trim()
+        .parse()
+        .expect("invalid baseline_ns_per_byte field in baseline CSV");
+    let max_regression_factor = fields
+        .next()
+        .expect("missing max_regression_factor field in baseline CSV")
+        .trim()
+        .parse()
+        .expect("invalid max_regression_factor field in baseline CSV");
     assert!(
         fields.next().is_none(),
         "unexpected trailing baseline fields"
