@@ -9,14 +9,11 @@ use std::mem::MaybeUninit;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-const BASELINE_PATH: &str = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/tests/backend-regression-bench-baseline.csv"
-);
 const CHUNK_IN: usize = 2 * 1024;
 const CHUNK_OUT: usize = 2 * 1024 * 1024;
 const PLAIN_LEN: usize = 16 * 1024 * 1024;
 const BENCH_TARGET_SAMPLE_TIME: Duration = Duration::from_millis(200);
+// Keep this odd so `samples[samples.len() / 2]` stays the true median.
 const BENCH_SAMPLES: usize = 5;
 const BENCH_MAX_ITERS_PER_SAMPLE: usize = 12;
 
@@ -252,6 +249,8 @@ fn sample_iterations(warmup_elapsed: Duration) -> usize {
     let warmup_nanos = warmup_elapsed.as_nanos();
     let target_nanos = BENCH_TARGET_SAMPLE_TIME.as_nanos();
     let iterations = if warmup_nanos == 0 {
+        // Extremely fast warmups should still produce bounded sample counts and
+        // must not divide by zero when computing iterations.
         BENCH_MAX_ITERS_PER_SAMPLE
     } else {
         (target_nanos / warmup_nanos) as usize
@@ -259,8 +258,14 @@ fn sample_iterations(warmup_elapsed: Duration) -> usize {
     iterations.clamp(1, BENCH_MAX_ITERS_PER_SAMPLE)
 }
 
+fn baseline_path() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("backend-regression-bench-baseline.csv")
+}
+
 fn load_baselines() -> Vec<BaselineRecord> {
-    let contents = fs::read_to_string(BASELINE_PATH).unwrap();
+    let contents = fs::read_to_string(baseline_path()).unwrap();
     contents
         .lines()
         .filter(|line| !line.trim().is_empty() && !line.starts_with('#'))
