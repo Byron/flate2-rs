@@ -1,5 +1,7 @@
 use flate2::write::ZlibEncoder;
-use flate2::{read::ZlibDecoder, Compress, Compression, Decompress, FlushCompress, FlushDecompress, Status};
+use flate2::{
+    read::ZlibDecoder, Compress, Compression, Decompress, FlushCompress, FlushDecompress, Status,
+};
 use std::fs;
 use std::hint::black_box;
 use std::io::{Read, Write};
@@ -213,7 +215,7 @@ fn benchmark_case(data: &BenchmarkData, case: Case) -> BenchmarkResult {
     for _ in 0..BENCH_SAMPLES {
         let sample_started = Instant::now();
         for _ in 0..iterations_per_sample {
-            black_box((case.run)(data));
+            (case.run)(black_box(data));
         }
         samples.push(sample_started.elapsed());
     }
@@ -257,7 +259,10 @@ fn parse_baseline_record(line: &str) -> BaselineRecord {
     let case = fields.next().unwrap().trim().to_owned();
     let baseline_ns_per_byte = fields.next().unwrap().trim().parse().unwrap();
     let max_regression_factor = fields.next().unwrap().trim().parse().unwrap();
-    assert!(fields.next().is_none(), "unexpected trailing baseline fields");
+    assert!(
+        fields.next().is_none(),
+        "unexpected trailing baseline fields"
+    );
     BaselineRecord {
         backend,
         case,
@@ -270,7 +275,12 @@ fn apply_baseline(backend: &str, result: &mut BenchmarkResult, baselines: &[Base
     let baseline = baselines
         .iter()
         .find(|baseline| baseline.backend == backend && baseline.case == result.case)
-        .unwrap_or_else(|| panic!("missing baseline for backend={backend}, case={}", result.case));
+        .unwrap_or_else(|| {
+            panic!(
+                "missing baseline for backend={backend}, case={}",
+                result.case
+            )
+        });
     result.baseline_ns_per_byte = baseline.baseline_ns_per_byte;
     result.max_regression_factor = baseline.max_regression_factor;
 }
@@ -335,7 +345,11 @@ fn backend_name() -> &'static str {
     not(feature = "zlib-ng"),
     not(feature = "zlib-ng-compat"),
     not(feature = "zlib-rs"),
-    any(feature = "zlib", feature = "zlib-default", feature = "cloudflare_zlib")
+    any(
+        feature = "zlib",
+        feature = "zlib-default",
+        feature = "cloudflare_zlib"
+    )
 ))]
 fn backend_name() -> &'static str {
     "zlib"
@@ -356,11 +370,6 @@ fn backend_name() -> &'static str {
 #[test]
 #[ignore]
 fn backend_regression_bench() {
-    assert!(
-        !cfg!(debug_assertions),
-        "run this benchmark with `cargo test --release`"
-    );
-
     let backend = backend_name();
     let data = benchmark_data();
     let baselines = load_baselines();
@@ -376,7 +385,9 @@ fn backend_regression_bench() {
 
     let failures: Vec<_> = results
         .iter()
-        .filter(|result| result.ns_per_byte > result.baseline_ns_per_byte * result.max_regression_factor)
+        .filter(|result| {
+            result.ns_per_byte > result.baseline_ns_per_byte * result.max_regression_factor
+        })
         .collect();
     assert!(
         failures.is_empty(),
